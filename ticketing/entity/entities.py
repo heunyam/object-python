@@ -26,17 +26,23 @@ class Bag:
         self.__amount = amount
         self.invitation = invitation
 
-    def has_invitation(self) -> bool:
+    def __has_invitation(self) -> bool:
         return self.invitation is None
 
-    def set_ticket(self, ticket: Ticket) -> None:
+    def __set_ticket(self, ticket: Ticket) -> None:
         self.ticket = ticket
 
-    def minus_amount(self, amount: Decimal) -> None:
+    def __minus_amount(self, amount: Decimal) -> None:
         self.__amount -= amount
 
-    def plus_amount(self, amount: Decimal) -> None:
-        self.__amount += amount
+    def hold(self, ticket: Ticket) -> Decimal:
+        if self.__has_invitation():
+            self.__set_ticket(ticket=ticket)
+            return Decimal("0")
+
+        self.__set_ticket(ticket=ticket)
+        self.__minus_amount(amount=ticket.get_fee())
+        return ticket.get_fee()
 
 
 # 관람객
@@ -47,13 +53,7 @@ class Audience:
         self.__bag = bag
 
     def buy(self, ticket: Ticket) -> Decimal:
-        if self.__bag.has_invitation():
-            self.__bag.set_ticket(ticket=ticket)
-            return Decimal("0")
-
-        self.__bag.set_ticket(ticket=ticket)
-        self.__bag.minus_amount(amount=ticket.get_fee())
-        return ticket.get_fee()
+        return self.__bag.hold(ticket=ticket)
 
 
 # 매표소
@@ -68,11 +68,11 @@ class TicketOffice:
     def get_ticket(self) -> Ticket:
         return self.__tickets.pop(0)
 
-    def minus_amount(self, amount: Decimal) -> None:
-        self.__amount -= amount
-
-    def plus_amount(self, amount: Decimal) -> None:
+    def __plus_amount(self, amount: Decimal) -> None:
         self.__amount += amount
+
+    def sell_ticket(self, ticket: Ticket) -> None:
+        self.__plus_amount(amount=ticket.get_fee())
 
 
 # 판매원
@@ -82,14 +82,11 @@ class TicketSeller:
     def __init__(self, ticket_office: TicketOffice) -> None:
         self.__ticket_office = ticket_office
 
-    def get_ticket(self) -> Ticket:
-        return self.__ticket_office.get_ticket()
-
     def sell_to_audience(self, audience: Audience) -> None:
-        ticket = self.get_ticket()
-        amount_paid = audience.buy(ticket=ticket)
+        ticket: Ticket = self.__ticket_office.get_ticket()
+        audience.buy(ticket=ticket)
 
-        self.__ticket_office.plus_amount(amount=amount_paid)
+        self.__ticket_office.sell_ticket(ticket=ticket)
 
 
 # 소극장
