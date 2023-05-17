@@ -12,7 +12,7 @@ class Invitation:
 class Ticket:
     __fee: Decimal
 
-    def get_fee(self):
+    def get_fee(self) -> Decimal:
         return self.__fee
 
 
@@ -38,16 +38,22 @@ class Bag:
     def plus_amount(self, amount: Decimal) -> None:
         self.__amount += amount
 
-# 관람객
 
+# 관람객
 class Audience:
     __bag: Bag
 
     def __init__(self, bag: Bag) -> None:
         self.__bag = bag
 
-    def get_bag(self) -> Bag:
-        return self.__bag
+    def buy(self, ticket: Ticket) -> Decimal:
+        if self.__bag.has_invitation():
+            self.__bag.set_ticket(ticket=ticket)
+            return Decimal("0")
+
+        self.__bag.set_ticket(ticket=ticket)
+        self.__bag.minus_amount(amount=ticket.get_fee())
+        return ticket.get_fee()
 
 
 # 매표소
@@ -76,8 +82,14 @@ class TicketSeller:
     def __init__(self, ticket_office: TicketOffice) -> None:
         self.__ticket_office = ticket_office
 
-    def get_ticket_office(self) -> TicketOffice:
-        return self.__ticket_office
+    def get_ticket(self) -> Ticket:
+        return self.__ticket_office.get_ticket()
+
+    def sell_to_audience(self, audience: Audience) -> None:
+        ticket = self.get_ticket()
+        amount_paid = audience.buy(ticket=ticket)
+
+        self.__ticket_office.plus_amount(amount=amount_paid)
 
 
 # 소극장
@@ -88,15 +100,4 @@ class Theater:
         self.__ticket_seller = ticket_seller
 
     def enter(self, audience: Audience) -> None:
-        if audience.get_bag().has_invitation():
-            ticket = self.__ticket_seller.get_ticket_office().get_ticket()
-            audience.get_bag().set_ticket(ticket=ticket)
-            return
-
-        ticket = self.__ticket_seller.get_ticket_office().get_ticket()
-        audience.get_bag().minus_amount(amount=ticket.get_fee())
-        self.__ticket_seller.get_ticket_office().plus_amount(amount=ticket.get_fee())
-        audience.get_bag().set_ticket(ticket=ticket)
-
-
-
+        self.__ticket_seller.sell_to_audience(audience=audience)
